@@ -1,79 +1,68 @@
+let numCircles = 30;
+let circles = [];
+let ripples = [];
 
-let numCircles = 20; // Number of circular shapes
-let circles = []; // Array to store circle objects
-
-
-function setup() 
-{
-  angleMode(DEGREES);
+function setup() {
   createCanvas(windowWidth, windowHeight);
-  createNonOverlappingCircle();
-}
-
-function draw() 
-{
-  background(220);
-  for (const circle of circles)
-    {
-      circle.display();
+  for (let i = 0; i < numCircles; i++) {
+    let circle = createNonOverlappingCircle();
+    if (circle != null) {
+      circles.push(circle);
     }
-}
-
-function windowResized()
-{
-  resizeCanvas(windowWidth,windowHeight);
-  createNonOverlappingCircle(); //Call function to create more if number is not met.
-}
-
-function createNonOverlappingCircle() 
-{
-  for (let i = 0; i < numCircles; i++)  //Populating circles in to circles array
-  {  
-    console.log(i);
-    let diameter = random(130, 200); //diameter of main circle
-    let circleColor = color(random(255), random(255), random(255)); //colour of main circle
-    let numSmallCircles = round(random(30, 50)); // Number of small circles around the diameter
-    let smallCircleColor = color(random(255), random(255), random(255)); //colour of small circle
-    let numLayers = 5; // Number of layers inside the main circle
-    let tempCircle = new Circle(random(width), random(height), diameter, circleColor, numSmallCircles, smallCircleColor, numLayers);
-
-    if(checkOverlap(tempCircle))
-      {
-        tempCircle.x = random(width); //If true (overlap) keep randomising
-        tempCircle.y = random(height);
-      }
-      else if(circles.length<numCircles) //If false (not overlap) check if the array objects are still less than numCircles
-      {
-        circles.push(tempCircle); //If total number is not met add more to array
-        createNonOverlappingCircle(); //Keep restarting functions as it will stop after i=numCircles eventhough total is not met.
-      }
-      else
-      {
-        break; //If total is met break out of loop
-      }
-
   }
 }
 
-//Checking the overlap with all existing circles array members
-function checkOverlap(tempCircle) 
-{
-  for (let i = 0; i < circles.length; i++) 
-    {
-      let d = dist(tempCircle.x, tempCircle.y, circles[i].x, circles[i].y);
-      if (d < (tempCircle.diameter / 2 + circles[i].diameter / 2)+5) // a generative AI was used in creating the checking logic.
-        {
-          return true; //If overlapped, returns true.
-        }
+function draw() {
+  background(220);
+  for (let i = 0; i < circles.length; i++) {
+    circles[i].display();
+  }
+
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    ripples[i].update();
+    ripples[i].display();
+    if (ripples[i].isFinished()) {
+      ripples.splice(i, 1); // Remove finished ripples
     }
-  return false; //If not overlapped, returns false.
+  }
 }
 
-//Class for generating circle
-class Circle 
-{
-  constructor(x, y, diameter, circleColor, numSmallCircles, smallCircleColor, numLayers)
-  {
+function createNonOverlappingCircle() {
+  let newCircle = null;
+
+  let diameter = random(150, 200);
+  let circleColor = color(random(255), random(255), random(255));
+  let numSmallCircles = int(random(30, 50));
+  let smallCircleColor = color(random(255), random(255), random(255));
+  let numLayers = 5;
+  let tempCircle = new Circle(random(width), random(height), diameter, circleColor, numSmallCircles, smallCircleColor, numLayers);
+
+  let maxTries = 1000;
+  for (let i = 0; i < maxTries; i++) {
+    if (checkOverlap(tempCircle)) {
+      tempCircle.x = random(width);
+      tempCircle.y = random(height);
+    } else {
+      newCircle = tempCircle;
+      break;
+    }
+  }
+
+  return newCircle;
+}
+
+function checkOverlap(newCircle) {
+  for (let i = 0; i < circles.length; i++) {
+    let d = dist(newCircle.x, newCircle.y, circles[i].x, circles[i].y);
+    if (d < (newCircle.diameter / 2 + circles[i].diameter / 2)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+class Circle {
+  constructor(x, y, diameter, circleColor, numSmallCircles, smallCircleColor, numLayers) {
     this.x = x;
     this.y = y;
     this.diameter = diameter;
@@ -83,34 +72,98 @@ class Circle
     this.numLayers = numLayers;
   }
 
-
-  display() 
-  {
-    // Draw main circle
+  display() {
     fill(this.circleColor);
     noStroke();
-    circle(this.x, this.y, this.diameter);
+    ellipse(this.x, this.y, this.diameter);
 
-    //Drawing the center disk
-    for (let i = 0; i<8; i++)
-      {
-        stroke(0);
-        ellipse(this.x, this.y, this.diameter*0.5-(i*10));
-      }
-  
+    for (let i = 0; i < 8; i++) {
+      stroke(0);
+      ellipse(this.x, this.y, this.diameter * 0.5 - (i * 10));
+    }
 
-    // Draw small circles layers inside the main circle
-    for (let l = 1; l <= this.numLayers; l++)
-      {
-        let layerRadius = this.diameter / 2 * (1 - l / (this.numLayers+5)); // a generative AI was used in creating the layerRadius logic.
-        for (let i = 0; i < this.numSmallCircles; i++) 
-          {
-            let angle = (360/this.numSmallCircles*i);
-            let sx = this.x + cos(angle) * (layerRadius);
-            let sy = this.y + sin(angle) * (layerRadius);
-            fill(this.smallCircleColor);
-            ellipse(sx, sy, 10);
-          }
+    for (let l = 1; l <= this.numLayers; l++) {
+      let layerRadius = this.diameter / 2 * (1 - l / (this.numLayers + 5));
+      for (let i = 0; i < this.numSmallCircles; i++) {
+        let angle = (TWO_PI / this.numSmallCircles * i);
+        let sx = this.x + cos(angle) * layerRadius;
+        let sy = this.y + sin(angle) * layerRadius;
+        fill(this.smallCircleColor);
+        ellipse(sx, sy, 10);
       }
+    }
   }
+
+  interactWithRipple(ripple) {
+    let d = dist(this.x, this.y, ripple.x, ripple.y);
+    if (d < ripple.diameter / 2) {
+      this.circleColor = ripple.color; // Change color when ripple interacts
+    }
+  }
+}
+
+class Ripple {
+  constructor(x, y, maxDiameter, speed, color) {
+    this.x = x;
+    this.y = y;
+    this.diameter = 0;
+    this.maxDiameter = maxDiameter;
+    this.speed = speed;
+    this.alpha = 255;
+    this.color = color;
+  }
+
+  update() {
+    this.diameter += this.speed;
+    this.alpha -= 2;
+  }
+
+  display() {
+    noFill();
+    stroke(this.color.levels[0], this.color.levels[1], this.color.levels[2], this.alpha);
+    ellipse(this.x, this.y, this.diameter);
+  }
+
+  isFinished() {
+    return this.alpha <= 0;
+  }
+}
+
+let rippleColor = color(0);
+
+function keyPressed() {
+  if (key === 'R') {
+    let circle = createNonOverlappingCircle();
+    if (circle != null) {
+      circles.push(circle);
+    }
+  } else if (key === '1') {
+    rippleColor = color(255, 0, 0); // Red
+  } else if (key === '2') {
+    rippleColor = color(0, 255, 0); // Green
+  } else if (key === '3') {
+    rippleColor = color(0, 0, 255); // Blue
+  }
+}
+
+function mousePressed() {
+  for (let i = 0; i < circles.length; i++) {
+    let d = dist(mouseX, mouseY, circles[i].x, circles[i].y);
+    if (d < circles[i].diameter / 2) {
+      let colors = [color(255, 0, 0), color(0, 255, 0), color(0, 0, 255)];
+      for (let j = 0; j < 3; j++) {
+        let ripple = new Ripple(circles[i].x, circles[i].y, circles[i].diameter * 2, random(1, 5), colors[j]);
+        ripples.push(ripple);
+      }
+    }
+  }
+}
+
+function mouseDragged() {
+  let ripple = new Ripple(mouseX, mouseY, 200, 2, color(random(255), random(255), random(255)));
+  ripples.push(ripple);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
