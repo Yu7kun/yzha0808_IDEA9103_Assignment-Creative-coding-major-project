@@ -4,7 +4,7 @@ let circles = []; // Array to store circle objects
 let d = 0; // Diameter of ripples
 let speed = 5; // Speed of ripple expansion
 let rippleColors = []; // Array to store ripple colors
-let speedButton; // Button to increase ripple speed
+let resetButton; // Button to reset ripple
 
 function setup() {
   angleMode(DEGREES); // Set angle mode to degrees
@@ -17,6 +17,11 @@ function setup() {
   for (let i = 0; i < 10; i++) {
     rippleColors.push(color(random(255), random(255), random(255), 150)); // Generate random colors with transparency
   }
+
+  // Create button to reset ripple
+  resetButton = createButton('Reset Ripple');
+  resetButton.position(10, 50);
+  resetButton.mousePressed(resetRipple); // Call resetRipple function when button is pressed
 
   // Create button to increase ripple speed
   speedButton = createButton('Increase Ripple Speed');
@@ -173,4 +178,25 @@ function doubleClicked() {
 // Reference: MDN documentation: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
 function increaseRippleSpeed() {
   speed += 2; // Increase speed by 2
+}
+
+// Function to reset ripple
+function resetRipple() {
+  center = null;
+  d = 0;
+  speed = 5;
+}
+
+// Handle key press events
+function keyPressed() {
+  if (key === ' ') {
+    // Space bar pressed: Reset the canvas
+    circles = [];
+    for (let i = 0; i < numCircles; i++) {
+      createNonOverlappingCircle(random(width), random(height));
+    }
+  } else if (key === 'r' || key === 'R') {
+    // 'R' key pressed: Increase ripple speed
+    increaseRippleSpeed();
+  }
 }
