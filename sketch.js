@@ -21,6 +21,9 @@ function draw() {
   for (let i = ripples.length - 1; i >= 0; i--) {
     ripples[i].update();
     ripples[i].display();
+    for (let j = 0; j < circles.length; j++) {
+      circles[j].interactWithRipple(ripples[i]);
+    }
     if (ripples[i].isFinished()) {
       ripples.splice(i, 1); // Remove finished ripples
     }
@@ -129,34 +132,16 @@ class Ripple {
   }
 }
 
-let rippleColor = color(0);
-
 function keyPressed() {
-  if (key === 'R') {
-    let circle = createNonOverlappingCircle();
-    if (circle != null) {
-      circles.push(circle);
-    }
-  } else if (key === '1') {
-    rippleColor = color(255, 0, 0); // Red
-  } else if (key === '2') {
-    rippleColor = color(0, 255, 0); // Green
-  } else if (key === '3') {
-    rippleColor = color(0, 0, 255); // Blue
+  if (key === ' ') {
+    let ripple = new Ripple(random(width), random(height), 400, random(1, 5), color(random(255), random(255), random(255)));
+    ripples.push(ripple);
   }
 }
 
 function mousePressed() {
-  for (let i = 0; i < circles.length; i++) {
-    let d = dist(mouseX, mouseY, circles[i].x, circles[i].y);
-    if (d < circles[i].diameter / 2) {
-      let colors = [color(255, 0, 0), color(0, 255, 0), color(0, 0, 255)];
-      for (let j = 0; j < 3; j++) {
-        let ripple = new Ripple(circles[i].x, circles[i].y, circles[i].diameter * 2, random(1, 5), colors[j]);
-        ripples.push(ripple);
-      }
-    }
-  }
+  let ripple = new Ripple(mouseX, mouseY, 400, random(1, 5), color(random(255), random(255), random(255)));
+  ripples.push(ripple);
 }
 
 function mouseDragged() {
