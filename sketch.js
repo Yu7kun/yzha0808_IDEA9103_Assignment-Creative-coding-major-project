@@ -1,69 +1,90 @@
-let numCircles = 30;
-let circles = [];
-let ripples = [];
+let numCircles = 30; // Initial number of circles
+let center = null; // The center of the ripples
+let circles = []; // Array to store circle objects
+let d = 0; // Diameter of ripples
+let speed = 5; // Speed of ripple expansion
+let rippleColors = []; // Array to store ripple colors
+let speedButton; // Button to increase ripple speed
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  angleMode(DEGREES); // Set angle mode to degrees
+  createCanvas(windowWidth, windowHeight); // Create canvas
   for (let i = 0; i < numCircles; i++) {
-    let circle = createNonOverlappingCircle();
-    if (circle != null) {
-      circles.push(circle);
-    }
+    createNonOverlappingCircle(random(width), random(height)); // Create initial non-overlapping circles
   }
+  
+  // Initialize ripple colors
+  for (let i = 0; i < 10; i++) {
+    rippleColors.push(color(random(255), random(255), random(255), 150)); // Generate random colors with transparency
+  }
+
+  // Create button to increase ripple speed
+  speedButton = createButton('Increase Ripple Speed');
+  speedButton.position(10, 10);
+  speedButton.mousePressed(increaseRippleSpeed); // Call increaseRippleSpeed function when button is pressed
 }
 
 function draw() {
-  background(220);
-  for (let i = 0; i < circles.length; i++) {
-    circles[i].display();
+  background(220); // Set background color
+  for (const circle of circles) {
+    circle.display(); // Display circle
+    circle.update(); // Update circle's position and state
   }
 
-  for (let i = ripples.length - 1; i >= 0; i--) {
-    ripples[i].update();
-    ripples[i].display();
-    for (let j = 0; j < circles.length; j++) {
-      circles[j].interactWithRipple(ripples[i]);
+  if (center != null) {
+    // If a center is defined, draw ripples
+    noFill(); // No fill color
+    d += speed; // Expand the diameter of the ripples
+    // Display ripples
+    let ripplesExist = false;
+    for (let i = 0; i < 10; i++) {
+      let s = d - i * 50; // Calculate ripple size
+      if (s > 0) {
+        let alpha = map(s, 0, width, 255, 0); // Calculate alpha for fade-out effect
+        if (alpha > 0) {
+          rippleColors[i].setAlpha(alpha); // Set alpha for fading effect
+          stroke(rippleColors[i]); // Set ripple color
+          strokeWeight(2); // Set stroke weight
+
+          beginShape();
+          for (let angle = 0; angle < 360; angle += 10) {
+            let offset = map(noise(s, angle * 0.1, frameCount * 0.02), 0, 1, -10, 10); // Use Perlin noise for smooth variation
+            let x = center.x + (s + offset) * cos(angle);
+            let y = center.y + (s + offset) * sin(angle);
+            vertex(x, y); // Record vertex
+          }
+          endShape(CLOSE);
+          ripplesExist = true;
+        }
+      }
     }
-    if (ripples[i].isFinished()) {
-      ripples.splice(i, 1); // Remove finished ripples
+    // Gradually slow down ripple expansion
+    speed *= 0.99;
+    // Stop expanding ripples when they are fully faded out
+    if (!ripplesExist) {
+      center = null;
+      d = 0;
+      speed = 5;
     }
   }
 }
 
-function createNonOverlappingCircle() {
-  let newCircle = null;
-
-  let diameter = random(150, 200);
-  let circleColor = color(random(255), random(255), random(255));
-  let numSmallCircles = int(random(30, 50));
-  let smallCircleColor = color(random(255), random(255), random(255));
-  let numLayers = 5;
-  let tempCircle = new Circle(random(width), random(height), diameter, circleColor, numSmallCircles, smallCircleColor, numLayers);
-
-  let maxTries = 1000;
-  for (let i = 0; i < maxTries; i++) {
-    if (checkOverlap(tempCircle)) {
-      tempCircle.x = random(width);
-      tempCircle.y = random(height);
-    } else {
-      newCircle = tempCircle;
-      break;
-    }
-  }
-
-  return newCircle;
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight); // Resize canvas when window is resized
 }
 
-function checkOverlap(newCircle) {
-  for (let i = 0; i < circles.length; i++) {
-    let d = dist(newCircle.x, newCircle.y, circles[i].x, circles[i].y);
-    if (d < (newCircle.diameter / 2 + circles[i].diameter / 2)) {
-      return true;
-    }
-  }
-  return false;
+// Reference: p5.js documentation: https://p5js.org/reference/#/p5/random
+function createNonOverlappingCircle(x, y) {
+  let diameter = random(130, 200); // Diameter of the main circle
+  let circleColor = color(random(255), random(255), random(255)); // Color of the main circle
+  let numSmallCircles = round(random(30, 50)); // Number of small circles
+  let smallCircleColor = color(random(255), random(255), random(255)); // Color of small circles
+  let numLayers = 5; // Number of layers of small circles
+  let tempCircle = new Circle(x, y, diameter, circleColor, numSmallCircles, smallCircleColor, numLayers); // Create circle object
+  circles.push(tempCircle); // Add to circles array
 }
 
+// Class for generating circles
 class Circle {
   constructor(x, y, diameter, circleColor, numSmallCircles, smallCircleColor, numLayers) {
     this.x = x;
@@ -73,82 +94,83 @@ class Circle {
     this.numSmallCircles = numSmallCircles;
     this.smallCircleColor = smallCircleColor;
     this.numLayers = numLayers;
+    this.active = false; // Circle is active or not
+    this.life = true; // Circle exists or not
+    this.ss = 0.1; // Initial scale
   }
 
   display() {
-    fill(this.circleColor);
-    noStroke();
-    ellipse(this.x, this.y, this.diameter);
+    if (this.life) {
+      push();
+      translate(this.x, this.y); // Translate to the circle's position
+      scale(this.ss); // Apply scaling
+      translate(-this.x, -this.y); // Translate back to the original position
+      // Draw the main circle
+      fill(this.circleColor);
+      noStroke();
+      circle(this.x, this.y, this.diameter);
 
-    for (let i = 0; i < 8; i++) {
-      stroke(0);
-      ellipse(this.x, this.y, this.diameter * 0.5 - (i * 10));
-    }
-
-    for (let l = 1; l <= this.numLayers; l++) {
-      let layerRadius = this.diameter / 2 * (1 - l / (this.numLayers + 5));
-      for (let i = 0; i < this.numSmallCircles; i++) {
-        let angle = (TWO_PI / this.numSmallCircles * i);
-        let sx = this.x + cos(angle) * layerRadius;
-        let sy = this.y + sin(angle) * layerRadius;
-        fill(this.smallCircleColor);
-        ellipse(sx, sy, 10);
+      // Draw the center disk
+      for (let i = 0; i < 8; i++) {
+        stroke(0);
+        ellipse(this.x, this.y, this.diameter * 0.5 - (i * 10));
       }
-    }
-  }
 
-  interactWithRipple(ripple) {
-    let d = dist(this.x, this.y, ripple.x, ripple.y);
-    if (d < ripple.diameter / 2) {
-      this.circleColor = ripple.color; // Change color when ripple interacts
+      // Draw layers of small circles
+      for (let l = 1; l <= this.numLayers; l++) {
+        let layerRadius = this.diameter / 2 * (1 - l / (this.numLayers + 5)); // Calculate radius of each layer
+        for (let i = 0; i < this.numSmallCircles; i++) {
+          let angle = (360 / this.numSmallCircles * i); // Calculate angle
+          let sx = this.x + cos(angle) * (layerRadius); // Calculate x position of small circle
+          let sy = this.y + sin(angle) * (layerRadius); // Calculate y position of small circle
+          fill(this.smallCircleColor);
+          ellipse(sx, sy, 10); // Draw small circle
+        }
+      }
+      pop();
     }
-  }
-}
-
-class Ripple {
-  constructor(x, y, maxDiameter, speed, color) {
-    this.x = x;
-    this.y = y;
-    this.diameter = 0;
-    this.maxDiameter = maxDiameter;
-    this.speed = speed;
-    this.alpha = 255;
-    this.color = color;
   }
 
   update() {
-    this.diameter += this.speed;
-    this.alpha -= 2;
-  }
+    let pos = createVector(this.x, this.y); // Create vector for the circle's position
 
-  display() {
-    noFill();
-    stroke(this.color.levels[0], this.color.levels[1], this.color.levels[2], this.alpha);
-    ellipse(this.x, this.y, this.diameter);
-  }
+    if (center != null && pos.dist(center) <= d / 2) {
+      this.active = true;
+      // Move the circle if it intersects with the ripple
+      let force = p5.Vector.sub(pos, center);
+      force.normalize();
+      force.mult(5); // Adjust the speed of the movement
+      this.x += force.x;
+      this.y += force.y;
 
-  isFinished() {
-    return this.alpha <= 0;
+      // Reference: Usage of Perlin noise: https://p5js.org/examples/math-noise-wave.html
+      if (pos.dist(center) <= d / 2) {
+        this.circleColor = color(random(255), random(255), random(255)); // Change color
+      }
+    }
+
+    if (this.ss < 1) {
+      this.ss += 0.1; // Increase scale
+    }
   }
 }
 
-function keyPressed() {
-  if (key === ' ') {
-    let ripple = new Ripple(random(width), random(height), 400, random(1, 5), color(random(255), random(255), random(255)));
-    ripples.push(ripple);
-  }
-}
-
-function mousePressed() {
-  let ripple = new Ripple(mouseX, mouseY, 400, random(1, 5), color(random(255), random(255), random(255)));
-  ripples.push(ripple);
-}
-
+// Reference: p5.js documentation mousePressed example: https://p5js.org/reference/#/p5/mousePressed
 function mouseDragged() {
-  let ripple = new Ripple(mouseX, mouseY, 200, 2, color(random(255), random(255), random(255)));
-  ripples.push(ripple);
+  // Generate circle when mouse is dragged
+  if (frameCount % 4 == 0) {
+    createNonOverlappingCircle(mouseX, mouseY);
+  }
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+function doubleClicked() {
+  center = createVector(mouseX, mouseY); // Set new center position on double click
+  d = 0; // Reset ripple diameter
+  speed = 5; // Reset ripple speed
+}
+
+// Function to increase ripple speed
+// Reference: MDN documentation: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener
+function increaseRippleSpeed() {
+  speed += 2; // Increase speed by 2
 }
