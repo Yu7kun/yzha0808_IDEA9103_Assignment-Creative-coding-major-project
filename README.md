@@ -26,8 +26,10 @@ Initially, I modified the base code to create a ripple effect when the user clic
 ![An image of Inspiration_ Wallwave Vibrations](./assets/Inspiration_%20Wallwave%20Vibrations.png)
 ![An image of Inspiration_ Wallwave Vibrations](./assets/Inspiration2_%20Wallwave%20Vibrations.png)
 [Link website](https://mymodernmet.com/loris-cecchini-wallwave-vibrations-extruding-bodies-sculptures)
-
 This interactive art inspired me to use Perlin noise to transform the original boring ripples into electromagnetic waves, which would push the circular groups. When pushed, these groups would become agitated, continuously changing colors until they are pushed off the screen.
+
+The style of my work is inspired by my favorite horror movie Midsommar. That weird folk horror vibe is what I wanted to convey.
+![An image of Inspiration_ Midsommar](./assets/Midsommar.png)
 
 ## Interaction Instructions
 ![An image of Operation Instructions](./assets/Operation%20Instructions.gif)
